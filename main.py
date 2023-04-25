@@ -21,8 +21,6 @@ def sql_connection():
         print(Error)
 
 
-db = sql_connection()
-cursor = db.cursor()
 salt = os.getenv('SALT')
 
 
@@ -87,6 +85,8 @@ class Win_sign_in(QMainWindow, sign_in):
 
     def signIn(self, login, password):
         if login != '' and password != '':
+            db = sql_connection()
+            cursor = db.cursor()
             cursor.execute(
                 f"SELECT * FROM user WHERE login = '{login}' or email = '{login}'"
             )
@@ -150,7 +150,7 @@ class Win_registration(QMainWindow, registration):
             smtp.login(sender, password)
             smtp.sendmail(sender, email, em.as_string())
 
-    def generation_code(self):
+    def generation_code(self, cursor):
         symvols = '0123456789abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz'
         code1 = []
         code2 = ''
@@ -201,6 +201,8 @@ class Win_registration(QMainWindow, registration):
     def registration(self):
         if self.lineEdit_login.text() != '' and self.lineEdit_email.text() != '' and self.lineEdit_password.text() != '' and \
            self.lineEdit_repeat_the_password.text() != '':
+            db = sql_connection()
+            cursor = db.cursor()
             cursor.execute(
                 f"SELECT * FROM user WHERE login = '{self.lineEdit_login.text()}' or email = '{self.lineEdit_email.text()}'"
             )
@@ -215,7 +217,7 @@ class Win_registration(QMainWindow, registration):
                 print('psw_SHA-512 with salt:', psw_sha512)
                 cursor.execute(
                     "INSERT INTO User (login, email, password, password_recovery_code) VALUES (?, ?, ?, ?)",
-                    (self.lineEdit_login.text(), self.lineEdit_email.text(), psw_sha512, self.generation_code())
+                    (self.lineEdit_login.text(), self.lineEdit_email.text(), psw_sha512, self.generation_code(cursor))
                 )
                 db.commit()
                 print("Запис створено")
@@ -285,13 +287,15 @@ class Win_restoring_access_to_the_account(QMainWindow, restoring_access_to_the_a
             if self.lineEdit_email.text().count('@') == 1 and self.lineEdit_email.text()[0] != '@' and \
                self.lineEdit_email.text().count('.') > 0 and \
                self.lineEdit_email.text().rfind('.') > self.lineEdit_email.text().rfind('@'):
+                db = sql_connection()
+                cursor = db.cursor()
                 cursor.execute(
                     f"SELECT * FROM user WHERE email = '{self.lineEdit_email.text()}'"
                 )
                 data = cursor.fetchall()
                 if data != []:
                     if self.lineEdit_new_password.text() == self.lineEdit_repeat_the_new_password.text():
-                        code_to_change_password = sha512(salt, self.lineEdit_enter_the_code_to_change_your_password)
+                        code_to_change_password = sha512(salt, self.lineEdit_enter_the_code_to_change_your_password.text())
                         if code_to_change_password == data[0][4]:
                             password = sha512(salt, self.lineEdit_new_password.text())
                             cursor.execute(

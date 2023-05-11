@@ -25,7 +25,7 @@ def sha512(salt, data):
 def sign_in():
     """
     :input: {'login': str, 'password': str}
-    :return: state: str
+    :return: {'state': str, 'name': str} or {'state': str}
     """
     print(request.json)
     login = request.json['login']
@@ -41,15 +41,15 @@ def sign_in():
 
     if login != '' and password != '':
         if data != []:
-            if login == data[0][1] and sha512(salt, password) == data[0][3]:
-                return 'OK'
-            elif login == data[0][1] and sha512(salt, password) != data[0][3]:
-                return 'NO'
+            if (login == data[0][1] or login == data[0][2]) and sha512(salt, password) == data[0][3]:
+                name = data[0][1]
+                return {'state': 'OK', 'name': name}
+            elif (login == data[0][1] or login == data[0][2]) and sha512(salt, password) != data[0][3]:
+                return {'state': 'NO'}
         else:
-            return 'NO FOUND'
+            return {'state': 'NO FOUND'}
     else:
-        return 'EMPTY FIELDS'
-
+        return {'state': 'EMPTY FIELDS'}
 
 @app.route('/registration', methods=['POST'])
 def registration():

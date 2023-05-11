@@ -72,13 +72,13 @@ class Win_sign_in(QMainWindow, sign_in):
                 'login': login,
                 'password': password
             })
-            print(response.text)
-            match response.text:
+            print(response.json()['state'])
+            match response.json()['state']:
                 case 'OK':
                     print('Успішний вхід')
                     openDialog('Information', 'Успішний вхід!', 'Успішний вхід!')
                     self.Python_Chat.show()
-                    self.Python_Chat.label_login_name.setText(login)
+                    self.Python_Chat.label_login_name.setText(response.json()['name'])
                     self.hide()
                 case 'NO':
                     print('Невірний пароль!')

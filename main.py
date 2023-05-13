@@ -3,10 +3,10 @@ import sys, ctypes, requests, threading
 
 from PyQt6 import QtWidgets, QtCore, QtGui
 from PyQt6.QtWidgets import QApplication, QMessageBox, QMainWindow
-from sign_in import Ui_MainWindow as sign_in
-from registration import Ui_MainWindow as registration
-from Python_Chat import Ui_MainWindow as Python_Chat
-from restoring_access_to_the_account import Ui_MainWindow as restoring_access_to_the_account
+from GUI.sign_in import Ui_MainWindow as sign_in
+from GUI.registration import Ui_MainWindow as registration
+from GUI.Python_Chat import Ui_MainWindow as Python_Chat
+from GUI.restoring_access_to_the_account import Ui_MainWindow as restoring_access_to_the_account
 from datetime import datetime
 from time import sleep
 
@@ -295,7 +295,7 @@ class Win_restoring_access_to_the_account(QMainWindow, restoring_access_to_the_a
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    app.setWindowIcon(QtGui.QIcon('chat.ico'))
+    app.setWindowIcon(QtGui.QIcon('image/chat.ico'))
     window = Win_sign_in()
 
     myappid = 'mycompany.myproduct.subproduct.version'  # arbitrary string

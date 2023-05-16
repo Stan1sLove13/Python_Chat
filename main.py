@@ -56,10 +56,6 @@ class Win_sign_in(QMainWindow, sign_in):
         self.label_forgot_password.mousePressEvent = self.showRestoringAccessToTheAccount
         self.checkBox_show_password.stateChanged.connect(self.show_password)
 
-        self.Registration = Win_registration()
-        self.Restoring_access_to_the_account = Win_restoring_access_to_the_account()
-        self.Python_Chat = Win_Python_Chat()
-
     def show_password(self, state):
         if QtCore.Qt.CheckState(state) == QtCore.Qt.CheckState.Checked:
             self.lineEdit_password.setEchoMode(QtWidgets.QLineEdit.EchoMode.Normal)
@@ -77,9 +73,8 @@ class Win_sign_in(QMainWindow, sign_in):
                 case 'OK':
                     print('Успішний вхід')
                     openDialog('Information', 'Успішний вхід!', 'Успішний вхід!')
-                    self.Python_Chat.show()
-                    self.Python_Chat.label_login_name.setText(response.json()['name'])
-                    self.hide()
+                    self.close()
+                    Win_Python_Chat().showPythonChat(response.json()['name'])
                 case 'NO':
                     print('Невірний пароль!')
                     openDialog('Information', 'Невірний пароль!', 'Невірний пароль!')
@@ -94,15 +89,15 @@ class Win_sign_in(QMainWindow, sign_in):
             openDialog('Information', 'Вибачне. Наразі сервер не працює!', 'Вибачне. Наразі сервер не працює!')
 
     def showRegistration(self, event):
-        self.Registration.show()
-        self.hide()
+        self.close()
+        Win_registration().showRegistration()
 
     def showSignIn(self):
         self.show()
 
     def showRestoringAccessToTheAccount(self, event):
-        self.Restoring_access_to_the_account.show()
-        self.hide()
+        self.close()
+        Win_restoring_access_to_the_account().showRestoringAccessToTheAccount()
 
 
 class Win_registration(QMainWindow, registration):
@@ -138,8 +133,8 @@ class Win_registration(QMainWindow, registration):
                 case 'OK':
                     print('Запис створено')
                     openDialog('Information', 'Запис створено', 'Запис створено')
+                    self.close()
                     Win_sign_in().showSignIn()
-                    self.hide()
                 case 'INCORRECT EMAIL ENTRY':
                     print('Неправильний запис пошти!')
                     openDialog('Information', 'Неправильний запис пошти!', 'Неправильний запис пошти!')
@@ -157,8 +152,11 @@ class Win_registration(QMainWindow, registration):
             openDialog('Information', 'Вибачне. Наразі сервер не працює!', 'Вибачне. Наразі сервер не працює!')
 
     def showSignIn(self, event):
+        self.close()
         Win_sign_in().showSignIn()
-        self.hide()
+
+    def showRegistration(self):
+        self.show()
 
 
 class Win_Python_Chat(QMainWindow, Python_Chat):
@@ -171,7 +169,9 @@ class Win_Python_Chat(QMainWindow, Python_Chat):
         self.pushButton_logout.clicked.connect(self.logout)
         self.text_changed()
         self.textEdit_input_message.textChanged.connect(self.text_changed)
-        threading.Thread(target=self.refresh).start()
+        self.thread1_state = True
+        self.thread1 = threading.Thread(target=self.refresh)
+        self.thread1.start()
 
     def text_changed(self):
         text = self.textEdit_input_message.toPlainText().strip()
@@ -199,7 +199,7 @@ class Win_Python_Chat(QMainWindow, Python_Chat):
     def refresh(self):
         last_time = 0
 
-        while True:
+        while self.thread1_state:
             try:
                 response = requests.get('http://127.0.0.1:5000/messages',
                                         params={'after': last_time})
@@ -222,8 +222,15 @@ class Win_Python_Chat(QMainWindow, Python_Chat):
             sleep(1)
 
     def logout(self):
+        self.thread1_state = False
+        self.thread1.join()
+        print('Потік 1 завершився')
+        self.close()
         Win_sign_in().showSignIn()
-        self.hide()
+
+    def showPythonChat(self, name):
+        self.show()
+        self.label_login_name.setText(name)
 
 
 class Win_restoring_access_to_the_account(QMainWindow, restoring_access_to_the_account):
@@ -253,8 +260,8 @@ class Win_restoring_access_to_the_account(QMainWindow, restoring_access_to_the_a
                 case 'OK':
                     print('Пароль змінено!')
                     openDialog('Information', 'Пароль змінено!', 'Пароль змінено!')
+                    self.close()
                     Win_sign_in().showSignIn()
-                    self.hide()
                 case 'INCORRECT EMAIL ENTRY':
                     print('Неправильний запис пошти!')
                     openDialog('Information', 'Неправильний запис пошти!', 'Неправильний запис пошти!')
@@ -289,8 +296,11 @@ class Win_restoring_access_to_the_account(QMainWindow, restoring_access_to_the_a
             self.lineEdit_enter_the_code_to_change_your_password.setEchoMode(QtWidgets.QLineEdit.EchoMode.Password)
 
     def showSignIn(self, event):
+        self.close()
         Win_sign_in().showSignIn()
-        self.hide()
+
+    def showRestoringAccessToTheAccount(self):
+        self.show()
 
 
 if __name__ == "__main__":

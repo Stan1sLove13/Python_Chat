@@ -13,8 +13,8 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
         MainWindow.resize(550, 327)
-        MainWindow.setMinimumSize(QtCore.QSize(548, 327))
-        MainWindow.setMaximumSize(QtCore.QSize(1000, 1000))
+        MainWindow.setMinimumSize(QtCore.QSize(550, 327))
+        MainWindow.setMaximumSize(QtCore.QSize(550, 327))
         MainWindow.setStyleSheet("QWidget {\n"
 "    color: white;\n"
 "    background-color: #00FFFF;\n"

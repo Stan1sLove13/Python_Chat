@@ -140,7 +140,7 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "Регістрація"))
+        MainWindow.setWindowTitle(_translate("MainWindow", "Реєстрація"))
         self.label_registration.setText(_translate("MainWindow", "Реєстрація:"))
         self.label_login.setText(_translate("MainWindow", "Логін:"))
         self.lineEdit_login.setPlaceholderText(_translate("MainWindow", "Логін..."))

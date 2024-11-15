@@ -202,7 +202,7 @@ def change_password():
 def messages_view():
     """
     :input: ?after=float
-    :return: [{'login': str, 'time': float, 'text': str}]
+    :return: [{'login': str, 'time': float, 'text': str, 'is_own_message': bool}]
     """
     print(request.args)
     after = float(request.args['after'])
@@ -219,14 +219,15 @@ def messages_view():
 def send_view():
     """
     Відправити всім повідомлення.
-    :input: {'login': str, 'text': str}
+    :input: {'login': str, 'text': str, 'is_own_message': bool}
     :return: {'OK': bool}
     """
     print(request.json)
     login = request.json['login']
     text = request.json['text']
+    is_own_message = request.json.get('is_own_message', False)
 
-    messages.append({'login': login, 'time': time.time(), 'text': text})
+    messages.append({'login': login, 'time': time.time(), 'text': text, 'is_own_message': is_own_message})
     return {'OK': True}
 
 

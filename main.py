@@ -2,7 +2,7 @@ import sys, ctypes, requests, threading
 
 
 from PyQt6 import QtWidgets, QtCore, QtGui
-from PyQt6.QtWidgets import QApplication, QMessageBox, QMainWindow
+from PyQt6.QtWidgets import QApplication, QMessageBox, QMainWindow, QComboBox
 from GUI.sign_in import Ui_MainWindow as sign_in
 from GUI.registration import Ui_MainWindow as registration
 from GUI.Python_Chat import Ui_MainWindow as Python_Chat
@@ -74,7 +74,9 @@ class Win_sign_in(QMainWindow, sign_in):
                     print('Успішний вхід')
                     openDialog('Information', 'Успішний вхід!', 'Успішний вхід!')
                     self.close()
-                    Win_Python_Chat().showPythonChat(response.json()['name'])
+                    user_login = response.json()['name']
+                    chat_window = Win_Python_Chat(user_login)
+                    chat_window.showPythonChat(user_login)
                 case 'NO':
                     print('Невірний пароль!')
                     openDialog('Information', 'Невірний пароль!', 'Невірний пароль!')
@@ -160,38 +162,43 @@ class Win_registration(QMainWindow, registration):
 
 
 class Win_Python_Chat(QMainWindow, Python_Chat):
-    def __init__(self):
+    def __init__(self, user_login):
         super().__init__()
         self.setupUi(self)
+        self.user_login = user_login
 
-        self.pushButton_send.clicked.connect(lambda: self.send(self.label_login_name.text(),
+        self.pushButton_send.clicked.connect(lambda: self.send(self.user_login,
                                                                self.textEdit_input_message.toPlainText()))
         self.pushButton_logout.clicked.connect(self.logout)
         self.text_changed()
         self.textEdit_input_message.textChanged.connect(self.text_changed)
+        self.comboBox.currentIndexChanged.connect(self.insert_emoji)
+
+        self.comboBox.blockSignals(True)
+        self.comboBox.addItems(['😊', '😂', '😍', '😎', '😭', '😡', '👍', '👎', '💖', '🎉'])
+        self.comboBox.blockSignals(False)
+
         self.thread1_state = True
         self.thread1 = threading.Thread(target=self.refresh)
         self.thread1.start()
 
     def text_changed(self):
         text = self.textEdit_input_message.toPlainText().strip()
-        if text:
-            self.pushButton_send.setEnabled(True)
-        else:
-            self.pushButton_send.setEnabled(False)
+        self.pushButton_send.setEnabled(bool(text))
 
     def send(self, name, message):
         try:
             response = requests.post('http://127.0.0.1:5000/send', json={
                 'login': name,
-                'text': message
+                'text': message,
+                'is_own_message': name == self.user_login
             })
             print(response.text)
             self.textEdit_input_message.setText('')
             self.textEdit_input_message.repaint()
         except requests.exceptions.ConnectionError:
-            print('Вибачне. Наразі сервер не працює!')
-            self.textBrowser_output_message.append('Вибачне. Наразі сервер не працює!')
+            print('Вибачте. Наразі сервер не працює!')
+            self.textBrowser_output_message.append('Вибачте. Наразі сервер не працює!')
             self.textBrowser_output_message.append('')
             self.textEdit_input_message.setText('')
             self.textEdit_input_message.repaint()
@@ -201,8 +208,7 @@ class Win_Python_Chat(QMainWindow, Python_Chat):
 
         while self.thread1_state:
             try:
-                response = requests.get('http://127.0.0.1:5000/messages',
-                                        params={'after': last_time})
+                response = requests.get('http://127.0.0.1:5000/messages', params={'after': last_time})
                 print('Сервер працює!')
             except requests.exceptions.ConnectionError:
                 print('Сервер не працює!')
@@ -210,9 +216,13 @@ class Win_Python_Chat(QMainWindow, Python_Chat):
                 continue
 
             for message in response.json()['messages']:
-                time_formated = datetime.fromtimestamp(message['time'])
-                time_formated = time_formated.strftime('%Y-%m-%d %H:%M:%S')
-                header = message['login'] + ' в ' + time_formated
+                time_formated = datetime.fromtimestamp(message['time']).strftime('%Y-%m-%d %H:%M:%S')
+
+                if message['login'] == self.user_login:
+                    header = 'Ви в ' + time_formated
+                else:
+                    header = message['login'] + ' в ' + time_formated
+
                 text = message['text']
                 self.textBrowser_output_message.append(header)
                 self.textBrowser_output_message.append(text)
@@ -220,6 +230,10 @@ class Win_Python_Chat(QMainWindow, Python_Chat):
                 last_time = message['time']
 
             sleep(1)
+
+    def insert_emoji(self, index):
+        emoji = self.comboBox.currentText()
+        self.textEdit_input_message.insertPlainText(emoji)
 
     def logout(self):
         self.thread1_state = False

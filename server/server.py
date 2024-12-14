@@ -1,13 +1,24 @@
 import sqlite3, hashlib, smtplib, ssl, os, time
 
-from flask import Flask, request, g
+from flask import Flask, request, g, jsonify
 from random import*
 from email.message import EmailMessage
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 salt = os.getenv('SALT')
 messages = []
+message_id_counter = 0 # Лічильник повідомлень
 
+UPLOAD_FOLDER = 'uploads/'
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
+
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'mp4', 'avi', 'mov'}
+
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def get_db():
     db = getattr(g, '_database', None)
@@ -50,6 +61,7 @@ def sign_in():
             return {'state': 'NO FOUND'}
     else:
         return {'state': 'EMPTY FIELDS'}
+
 
 @app.route('/registration', methods=['POST'])
 def registration():
@@ -198,21 +210,34 @@ def change_password():
         return 'EMPTY FIELDS'
 
 
-@app.route('/messages')
-def messages_view():
-    """
-    :input: ?after=float
-    :return: [{'login': str, 'time': float, 'text': str, 'is_own_message': bool}]
-    """
-    print(request.args)
-    after = float(request.args['after'])
+@app.route('/upload', methods=['POST'])
+def upload_file():
+    if 'file' not in request.files:
+        return {'OK': False, 'error': 'No file part'}
+    file = request.files['file']
+    if file.filename == '':
+        return {'OK': False, 'error': 'No selected file'}
+    if file and allowed_file(file.filename):
+        filename = secure_filename(file.filename)
+        file.save(os.path.join(UPLOAD_FOLDER, filename))
 
-    filtered_messages = []
-    for message in messages:
-        if message['time'] > after:
-            filtered_messages.append(message)
+        # Додаємо повідомлення з файлом до загального списку
+        file_extension = file.filename.rsplit('.', 1)[1].lower()
+        if file_extension in {'png', 'jpg', 'jpeg'}:
+            file_type = 'IMAGE'
+        elif file_extension in {'mp4', 'avi', 'mov'}:
+            file_type = 'VIDEO'
+        else:
+            return {'OK': False, 'error': 'Invalid file type'}
 
-    return {'messages': filtered_messages}
+        global message_id_counter
+        messages.append(
+            {'id': message_id_counter, 'login': request.form['login'], 'time': time.time(), 'text': f'[{file_type}]{UPLOAD_FOLDER}{filename}',
+             'is_own_message': request.form['is_own_message'] == 'true'})
+        message_id_counter += 1
+
+        return {'OK': True, 'filename': filename}
+    return {'OK': False, 'error': 'Invalid file type'}
 
 
 @app.route('/send', methods=['POST'])
@@ -223,12 +248,63 @@ def send_view():
     :return: {'OK': bool}
     """
     print(request.json)
+    global message_id_counter
     login = request.json['login']
     text = request.json['text']
     is_own_message = request.json.get('is_own_message', False)
 
-    messages.append({'login': login, 'time': time.time(), 'text': text, 'is_own_message': is_own_message})
+    messages.append({'id': message_id_counter, 'login': login, 'time': time.time(), 'text': text, 'is_own_message': is_own_message})
+    message_id_counter += 1
     return {'OK': True}
+
+
+@app.route('/edit_message', methods=['POST'])
+def edit_message():
+    data = request.json
+    message_id = data.get('message_id')
+    print(message_id)
+    new_text = data.get('new_text')
+    print(new_text)
+    edited_time = data.get('edited_time')
+
+    print(f"Редагування повідомлення з id: {message_id} на текст: {new_text}")  # Логування
+    print(f"Поточний масив повідомлень: {messages}")
+
+    if message_id is not None and new_text:
+        for message in messages:
+            print("messages", messages)
+            if message['id'] == message_id:
+                message['text'] = new_text
+                message['edited_time'] = edited_time
+                print(f"Повідомлення з id: {message_id} успішно відредаговано")
+                return {'OK': True}
+    print(f"Неправильний message_id або new_text")  # Логування
+    return {'OK': False}
+
+
+@app.route('/delete_message', methods=['POST'])
+def delete_message():
+    data = request.json
+    message_id = data.get('message_id')
+
+    print(f"Видалення повідомлення з id: {message_id}")  # Логування
+    print(f"Поточний масив повідомлень: {messages}")
+
+    if message_id is not None:
+        for i, message in enumerate(messages):
+            if message['id'] == message_id:
+                del messages[i]
+                print(f"Повідомлення з id: {message_id} успішно видалено")
+                return {'OK': True}
+    print(f"Неправильний message_id")  # Логування
+    return {'OK': False}
+
+
+@app.route('/messages', methods=['GET'])
+def get_messages():
+    after = float(request.args.get('after', 0))
+    new_messages = [message for message in messages if message['time'] > after]
+    return jsonify({'messages': new_messages})
 
 
 @app.teardown_appcontext

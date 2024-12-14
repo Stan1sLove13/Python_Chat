@@ -18,7 +18,7 @@ class Ui_MainWindow(object):
         MainWindow.setStyleSheet("QWidget {\n"
 "    color: white;\n"
 "    background-color: #00FFFF;\n"
-"    fonf-family: Roboto;\n"
+"    font-family: Times New Roman;\n"
 "    font-size: 12pt;\n"
 "    font-weight: 600;\n"
 "}\n"
